@@ -4,7 +4,7 @@ description: Crea un módulo de funcionalidad NestJS (module, controller, servic
 license: MIT
 metadata:
   author: Abilson Rivera Garcia y Bredman Estiven Velez Cortez
-  version: "1.0.0"
+  version: "1.0.1"
   based-on: anthropics/skills template-skill
 ---
 
@@ -38,6 +38,7 @@ Y se modifica `src/app.module.ts` para agregar el módulo en `imports`.
 3. El controlador solo traduce HTTP ↔ servicio. La lógica y los datos viven en el servicio.
 4. Parámetros numéricos con `ParseIntPipe`; recurso inexistente → `throw new NotFoundException(\`... ${id} no existe\`)`.
 5. Mientras no haya base de datos, los datos son un arreglo `private readonly` en el servicio, y los métodos devuelven copias o elementos, nunca el arreglo mutable.
+6. **Las interfaces y tipos se importan con `import type`** (`import type { Pelicula } from ...`). Con `isolatedModules` + `emitDecoratorMetadata`, un tipo usado en la firma de un método decorado (`@Get`, `@Param`) con import normal rompe `npm run build` (error TS1272), aunque lint y pruebas pasen.
 
 ## 3. Plantillas
 
@@ -55,7 +56,7 @@ export interface Pelicula {
 
 ```ts
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Pelicula } from './entities/pelicula.entity.js';
+import type { Pelicula } from './entities/pelicula.entity.js';
 
 @Injectable()
 export class PeliculasService {
@@ -82,7 +83,7 @@ export class PeliculasService {
 ```ts
 import { Controller, Get, Param, ParseIntPipe } from '@nestjs/common';
 import { PeliculasService } from './peliculas.service.js';
-import { Pelicula } from './entities/pelicula.entity.js';
+import type { Pelicula } from './entities/pelicula.entity.js';
 
 @Controller('peliculas')
 export class PeliculasController {

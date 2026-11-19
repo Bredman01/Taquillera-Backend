@@ -14,12 +14,15 @@ npm run build            # compilar a dist/
 npm run start:prod       # ejecutar dist/main.js
 npm test                 # pruebas unitarias (*.spec.ts en src/)
 npm run test:e2e         # pruebas e2e (test/*.e2e-spec.ts)
-npm run test:cov         # cobertura
+npm run test:cov         # cobertura de todo src/; falla por debajo del 80 % de líneas
+npm run test:mutation    # mutación con StrykerJS; informe en reports/mutation/
 npm run lint             # oxlint con reglas que usan tipos
 npm run format           # Prettier sobre src/ y test/
 ```
 
-Antes de dar una tarea por terminada: `npm run lint`, `npm test` y `npm run test:e2e` deben pasar.
+Antes de dar una tarea por terminada: `npm run lint`, `npm test`, `npm run test:e2e` y `npm run build` deben pasar. El CI (`.github/workflows/ci.yml`) ejecuta lo mismo, más la cobertura, en cada pull request.
+
+La mutación es informativa y no bloquea. Para una sola funcionalidad: `npx stryker run --mutate "src/<modulo>/**/*.ts,!src/**/*.spec.ts"`.
 
 Variables de entorno (opcionales): `PORT` (por defecto `3001`) y `FRONTEND_URL` (origen permitido por CORS, por defecto `http://localhost:3000`). Ver `src/main.ts`.
 

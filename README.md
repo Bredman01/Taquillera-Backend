@@ -1,132 +1,83 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Taquillera · Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+API REST de **Taquillera**, una cartelera de eventos pequeños (cine, teatro, conciertos y charlas) con venta de boletas de asiento numerado.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Proyecto integrador del Diplomado en Ingeniería de Software con IA y Sistemas Agénticos (FET). **Grupo 11:** Abilson Rivera Garcia y Bredman Estiven Velez Cortez.
 
-## Description
+| Repositorio | Qué tiene |
+|---|---|
+| Este | La API, en NestJS 12 |
+| [TaquilleraFrontend](https://github.com/Bredman01/TaquilleraFrontend) | La interfaz, en Next.js 16 |
+| [Taquillera-Arnes](https://github.com/AbilsonRivera/Taquillera-Arnes) | El arnés de Claude Code: agentes, hook, reglas, skills y specs |
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Cómo ejecutarlo
 
-## Project setup
+Necesita Node.js 24.
 
-```bash
-$ npm install
+```powershell
+npm ci
+npm run start:dev    # API en http://localhost:3001
 ```
 
-## Compile and run the project
+No usa base de datos: los datos viven en memoria y se reinician al arrancar.
 
-```bash
-# development
-$ npm run start
+## API
 
-# watch mode
-$ npm run start:dev
+| Ruta | Qué devuelve |
+|---|---|
+| `GET /eventos` | Los eventos. Se filtra con `?categoria=` (`cine`, `teatro`, `concierto`, `charla`) y `?ciudad=` |
+| `GET /eventos/ciudades` | Las ciudades que tienen eventos, en orden alfabético |
+| `GET /eventos/:id` | Un evento; 404 si no existe |
 
-# production mode
-$ npm run start:prod
-```
+## Comandos
 
-## Run tests
+| Comando | Qué hace |
+|---|---|
+| `npm run lint` | oxlint con reglas que usan tipos |
+| `npm test` | Pruebas unitarias con Vitest |
+| `npm run test:e2e` | Pruebas e2e con Supertest |
+| `npm run test:cov` | Cobertura de todo `src/`; falla por debajo del 80 % de líneas |
+| `npm run test:mutation` | Mutación con StrykerJS; informe en `reports/mutation/` |
+| `npm run build` | Compila a `dist/` |
 
-```bash
-# unit tests
-$ npm run test
+## El arnés en este repositorio
 
-# e2e tests
-$ npm run test:e2e
+Un solo sistema de agentes coordina este repositorio y el del frontend, porque casi todas las funcionalidades cruzan los dos. Por eso los agentes, el hook de rutas, las reglas y las specs viven en [Taquillera-Arnes](https://github.com/AbilsonRivera/Taquillera-Arnes), y este repositorio se clona dentro como `backend/`. Aquí están las piezas propias del backend:
 
-# test coverage
-$ npm run test:cov
-```
+| Pieza | Dónde | Qué es |
+|---|---|---|
+| Memoria | [`AGENTS.md`](AGENTS.md); [`CLAUDE.md`](CLAUDE.md) lo importa | Stack, comandos, organización, convenciones y lo que el agente no debe hacer |
+| Skill `nest-modulo` | [`.claude/skills/nest-modulo/`](.claude/skills/nest-modulo/SKILL.md) | Cómo crear un módulo completo en este proyecto |
+| CI | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | Lint, pruebas con cobertura, e2e y build en cada pull request |
+| Umbral de cobertura | [`vitest.config.ts`](vitest.config.ts) | Mínimo del 80 % de líneas sobre todo `src/` |
+| Mutación | [`stryker.config.json`](stryker.config.json) | StrykerJS con el runner de Vitest |
 
-## Deployment
+### Para qué usamos la skill `nest-modulo`
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+El proyecto es ESM con Vitest, y un módulo generado «como siempre» no compila: los imports relativos necesitan la extensión `.js` y los tipos deben importarse con `import type`. La skill trae las plantillas ya corregidas. La usan el probador y el desarrollador del backend cada vez que una spec crea un recurso nuevo.
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### Cómo se usa
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
+1. Se clona el arnés y, dentro, este repositorio como `backend/` (lo hace `scripts/preparar.ps1` del arnés).
+2. Se escribe la spec y se crea la rama `feat/NNN-nombre`.
+3. Desde la raíz del arnés: `claude --agent taquilla-orquestador` y se le pide ejecutar la spec.
+4. En este repositorio trabajan dos agentes, en este orden: `probador-back` escribe las pruebas en rojo (commit `test:`) y `desarrollador-back` las pone en verde (commit `feat:`). Después pasan el guardián del contrato y el revisor.
+5. Una persona revisa, sube la rama, abre el pull request y fusiona con el CI en verde. Ningún agente puede hacer `git push` ni fusionar.
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+El orden completo, los permisos de cada agente y lo que cambió respecto del diseño del taller están en el [README del arnés](https://github.com/AbilsonRivera/Taquillera-Arnes#readme).
 
-## Observability
+## Calidad y evidencia
 
-In production applications, observability is essential for understanding how your system behaves, detecting issues early, and maintaining reliable performance.
+| Mecanismo | Dónde se ve |
+|---|---|
+| CI con cobertura mínima del 80 % | Checks de cada pull request de este repositorio |
+| TDD: pruebas antes que código | Historial de cada rama: el commit `test:` va antes del `feat:` |
+| Revisión independiente | `specs/NNN-nombre/evidencia/revision.md` en el arnés, y las decisiones en cada pull request |
+| Mutación | Sección de mutación de `evidencia/revision.md`, con los sobrevivientes clasificados |
+| Contrato con el frontend | `specs/NNN-nombre/evidencia/contrato.md` en el arnés |
 
-[NestJS Observe](https://observe.nestjs.com) automatically instruments your NestJS application, giving you deep visibility into your system with minimal setup:
+## Specs que tocaron este repositorio
 
-- **Distributed tracing:** Follow requests across services and understand how they flow through your system.
-- **Waterfall analysis:** Visualize request execution and identify slow operations, bottlenecks, and unexpected delays.
-- **Performance analysis:** Analyze application performance in real time and quickly pinpoint areas that need optimization.
-- **Metrics:** Track key application and infrastructure metrics to understand system health and performance trends.
-- **Logging:** Centralize and correlate logs with traces and other telemetry to make debugging easier.
-- **Error tracking:** Detect errors quickly and investigate their root causes with the surrounding context.
-- **SLA monitoring:** Track service-level objectives and identify when your application is approaching or exceeding defined thresholds.
-- **Alarms and alerts:** Set up alerts for critical errors, performance degradation, SLA violations, and other anomalies so your team can react quickly.
-
-To add it to this project, run this and approve the code it prints at [observe.nestjs.com/link](https://observe.nestjs.com/link) - signing up for free if you have no account:
-
-```bash
-$ npx @nestjs/observe link
-```
-
-It installs `@nestjs/observe`, wires it into `AppModule` and `main.ts`, and writes the app key and secret into `.env`, which every `nest start` script (`start`, `start:dev`, `start:debug`) then loads. In production, set `OBSERVE_APP_KEY` and `OBSERVE_APP_SECRET` in the environment instead.
-
-Or do it by hand:
-
-```bash
-$ npm install @nestjs/observe
-```
-
-Then follow the [setup guide](https://docs.nestjs.com/observability/sdk) - it takes a single import and an app key.
-
-The free plan needs no payment details and covers 300,000 events a month. You can also browse the [live demo](https://www.observe-demo.nestjs.com/dashboard) first - the whole dashboard over a busy service's data, with nothing to install.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Auto-instrument your application with [NestJS Observe](https://observe.nestjs.com). Distributed tracing, metrics, and logging made easy. Error tracking and performance monitoring for your NestJS applications.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+| Spec | Pull request |
+|---|---|
+| [002 · Eventos y filtros de la cartelera](https://github.com/AbilsonRivera/Taquillera-Arnes/blob/main/specs/002-eventos-y-filtros/spec.md) | PENDIENTE |

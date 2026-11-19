@@ -1,10 +1,10 @@
 ---
 name: nest-modulo
-description: Crea un módulo de funcionalidad NestJS (module, controller, service, DTO, entidad y pruebas unitarias y e2e) siguiendo las convenciones de Taquillera-Backend, un proyecto ESM con Vitest. Úsala cuando se pida agregar un recurso, endpoint o módulo nuevo a la API (por ejemplo películas, funciones, salas o compras).
+description: Crea un módulo de funcionalidad NestJS (module, controller, service, DTO, entidad y pruebas unitarias y e2e) siguiendo las convenciones de Taquillera-Backend, un proyecto ESM con Vitest. Úsala cuando se pida agregar un recurso, endpoint o módulo nuevo a la API (por ejemplo eventos, funciones o compras).
 license: MIT
 metadata:
   author: Abilson Rivera Garcia y Bredman Estiven Velez Cortez
-  version: "1.0.1"
+  version: "1.1.0"
   based-on: anthropics/skills template-skill
 ---
 
@@ -14,7 +14,7 @@ Guía para crear un módulo de funcionalidad completo. Trabaja solo dentro de `s
 
 ## 1. Archivos que se crean
 
-Para un recurso `<nombre>` en plural y en español (ej. `peliculas`):
+Para un recurso `<nombre>` en plural y en español (ej. `eventos`):
 
 ```
 src/<nombre>/
@@ -33,19 +33,19 @@ Y se modifica `src/app.module.ts` para agregar el módulo en `imports`.
 ## 2. Reglas que no se pueden olvidar
 
 1. **Imports relativos con `.js`** (el proyecto es ESM con `module: nodenext`):
-   `import { PeliculasService } from './peliculas.service.js';`
+   `import { EventosService } from './eventos.service.js';`
 2. **Vitest, no Jest**: `describe/it/expect` son globales; para mocks usa `vi.fn()`.
 3. El controlador solo traduce HTTP ↔ servicio. La lógica y los datos viven en el servicio.
 4. Parámetros numéricos con `ParseIntPipe`; recurso inexistente → `throw new NotFoundException(\`... ${id} no existe\`)`.
 5. Mientras no haya base de datos, los datos son un arreglo `private readonly` en el servicio, y los métodos devuelven copias o elementos, nunca el arreglo mutable.
-6. **Las interfaces y tipos se importan con `import type`** (`import type { Pelicula } from ...`). Con `isolatedModules` + `emitDecoratorMetadata`, un tipo usado en la firma de un método decorado (`@Get`, `@Param`) con import normal rompe `npm run build` (error TS1272), aunque lint y pruebas pasen.
+6. **Las interfaces y tipos se importan con `import type`** (`import type { Evento } from ...`). Con `isolatedModules` + `emitDecoratorMetadata`, un tipo usado en la firma de un método decorado (`@Get`, `@Param`) con import normal rompe `npm run build` (error TS1272), aunque lint y pruebas pasen.
 
 ## 3. Plantillas
 
 ### Entidad
 
 ```ts
-export interface Pelicula {
+export interface Evento {
   id: number;
   titulo: string;
   // ...campos del dominio
@@ -56,24 +56,24 @@ export interface Pelicula {
 
 ```ts
 import { Injectable, NotFoundException } from '@nestjs/common';
-import type { Pelicula } from './entities/pelicula.entity.js';
+import type { Evento } from './entities/evento.entity.js';
 
 @Injectable()
-export class PeliculasService {
-  private readonly peliculas: Pelicula[] = [
+export class EventosService {
+  private readonly eventos: Evento[] = [
     /* datos de ejemplo */
   ];
 
-  findAll(): Pelicula[] {
-    return [...this.peliculas];
+  findAll(): Evento[] {
+    return [...this.eventos];
   }
 
-  findOne(id: number): Pelicula {
-    const pelicula = this.peliculas.find((p) => p.id === id);
-    if (!pelicula) {
-      throw new NotFoundException(`La película ${id} no existe`);
+  findOne(id: number): Evento {
+    const evento = this.eventos.find((p) => p.id === id);
+    if (!evento) {
+      throw new NotFoundException(`El evento ${id} no existe`);
     }
-    return pelicula;
+    return evento;
   }
 }
 ```
@@ -82,21 +82,21 @@ export class PeliculasService {
 
 ```ts
 import { Controller, Get, Param, ParseIntPipe } from '@nestjs/common';
-import { PeliculasService } from './peliculas.service.js';
-import type { Pelicula } from './entities/pelicula.entity.js';
+import { EventosService } from './eventos.service.js';
+import type { Evento } from './entities/evento.entity.js';
 
-@Controller('peliculas')
-export class PeliculasController {
-  constructor(private readonly peliculasService: PeliculasService) {}
+@Controller('eventos')
+export class EventosController {
+  constructor(private readonly eventosService: EventosService) {}
 
   @Get()
-  findAll(): Pelicula[] {
-    return this.peliculasService.findAll();
+  findAll(): Evento[] {
+    return this.eventosService.findAll();
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number): Pelicula {
-    return this.peliculasService.findOne(id);
+  findOne(@Param('id', ParseIntPipe) id: number): Evento {
+    return this.eventosService.findOne(id);
   }
 }
 ```
@@ -105,28 +105,28 @@ export class PeliculasController {
 
 ```ts
 import { Module } from '@nestjs/common';
-import { PeliculasController } from './peliculas.controller.js';
-import { PeliculasService } from './peliculas.service.js';
+import { EventosController } from './eventos.controller.js';
+import { EventosService } from './eventos.service.js';
 
 @Module({
-  controllers: [PeliculasController],
-  providers: [PeliculasService],
-  exports: [PeliculasService], // solo si otro módulo lo necesita
+  controllers: [EventosController],
+  providers: [EventosService],
+  exports: [EventosService], // solo si otro módulo lo necesita
 })
-export class PeliculasModule {}
+export class EventosModule {}
 ```
 
 ### Prueba unitaria del servicio
 
 ```ts
 import { NotFoundException } from '@nestjs/common';
-import { PeliculasService } from './peliculas.service.js';
+import { EventosService } from './eventos.service.js';
 
-describe('PeliculasService', () => {
-  let service: PeliculasService;
+describe('EventosService', () => {
+  let service: EventosService;
 
   beforeEach(() => {
-    service = new PeliculasService();
+    service = new EventosService();
   });
 
   it('findAll devuelve la cartelera', () => {
@@ -148,7 +148,7 @@ import request from 'supertest';
 import { App } from 'supertest/types.js';
 import { AppModule } from './../src/app.module.js';
 
-describe('Peliculas (e2e)', () => {
+describe('Eventos (e2e)', () => {
   let app: INestApplication<App>;
 
   beforeEach(async () => {
@@ -161,17 +161,17 @@ describe('Peliculas (e2e)', () => {
     await app.close();
   });
 
-  it('GET /peliculas responde 200 con un arreglo', async () => {
-    const res = await request(app.getHttpServer()).get('/peliculas').expect(200);
+  it('GET /eventos responde 200 con un arreglo', async () => {
+    const res = await request(app.getHttpServer()).get('/eventos').expect(200);
     expect(Array.isArray(res.body)).toBe(true);
   });
 
-  it('GET /peliculas/9999 responde 404', () => {
-    return request(app.getHttpServer()).get('/peliculas/9999').expect(404);
+  it('GET /eventos/9999 responde 404', () => {
+    return request(app.getHttpServer()).get('/eventos/9999').expect(404);
   });
 
-  it('GET /peliculas/abc responde 400', () => {
-    return request(app.getHttpServer()).get('/peliculas/abc').expect(400);
+  it('GET /eventos/abc responde 400', () => {
+    return request(app.getHttpServer()).get('/eventos/abc').expect(400);
   });
 });
 ```

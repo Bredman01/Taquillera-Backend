@@ -21,8 +21,32 @@ const TODOS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 const ids = (cuerpo: Array<{ id: number }>): number[] =>
   cuerpo.map((evento) => evento.id);
 
+const MENSAJE_DEL_PIPE = 'Validation failed (numeric string is expected)';
+
 describe('Eventos (e2e)', () => {
   let app: INestApplication<App>;
+
+  // D5: las pruebas corren en Asia/Tokyo, 14 h por delante de Colombia, para
+  // que un filtro por fecha que use la hora local del servidor dé otro día.
+  // La e2e corre en el hilo principal, así que no necesita la guarda de los
+  // unitarios.
+  const zonaOriginal = process.env.TZ;
+
+  beforeAll(() => {
+    process.env.TZ = 'Asia/Tokyo';
+  });
+
+  afterAll(() => {
+    if (zonaOriginal === undefined) {
+      delete process.env.TZ;
+    } else {
+      process.env.TZ = zonaOriginal;
+    }
+  });
+
+  it('las pruebas corren en Asia/Tokyo, fuera de la zona de Colombia', () => {
+    expect(new Date('2026-11-22T03:30:00Z').getHours()).toBe(12);
+  });
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -135,6 +159,96 @@ describe('Eventos (e2e)', () => {
         error: 'Bad Request',
       });
     });
+
+    it('GET /eventos?fecha=2026-11-21 responde 200 con los eventos que tienen función ese día en hora de Colombia', async () => {
+      const todos = await request(app.getHttpServer())
+        .get('/eventos')
+        .expect(200);
+      const res = await request(app.getHttpServer())
+        .get('/eventos?fecha=2026-11-21')
+        .expect(200);
+
+      // El 5 tiene su función a las 8:00 p. m.: en UTC ya sería el día 22.
+      expect(ids(res.body)).toEqual([1, 4, 5, 6]);
+      // Los eventos salen completos y con sus nueve campos, no solo los ids.
+      expect(res.body).toEqual(
+        todos.body.filter((evento: { id: number }) =>
+          [1, 4, 5, 6].includes(evento.id),
+        ),
+      );
+      for (const evento of res.body) {
+        expect(Object.keys(evento).sort()).toEqual(CAMPOS_DEL_EVENTO);
+      }
+    });
+
+    it('GET /eventos?fecha=2026-11-22 y ?fecha=2026-11-23 cuentan el día en hora de Colombia, no en UTC', async () => {
+      const domingo = await request(app.getHttpServer())
+        .get('/eventos?fecha=2026-11-22')
+        .expect(200);
+      expect(ids(domingo.body)).toEqual([1, 4, 6, 7, 8]);
+
+      // Con UTC darían [4, 7] y con la hora de Tokio, [1, 4, 6, 7, 8].
+      const lunes = await request(app.getHttpServer())
+        .get('/eventos?fecha=2026-11-23')
+        .expect(200);
+      expect(lunes.body).toEqual([]);
+    });
+
+    it('GET /eventos?categoria=teatro&ciudad=Neiva&fecha=2026-11-22 responde 200 solo con el evento 4', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/eventos?categoria=teatro&ciudad=Neiva&fecha=2026-11-22')
+        .expect(200);
+
+      expect(ids(res.body)).toEqual([4]);
+      expect(res.body[0].titulo).toBe('Cartas a Medianoche');
+
+      // Sin la fecha esta consulta también daría [4]: el filtro de fecha solo
+      // se prueba si otro día deja la lista vacía. Con UTC, el 23 daría [4].
+      const otroDia = await request(app.getHttpServer())
+        .get('/eventos?categoria=teatro&ciudad=Neiva&fecha=2026-11-23')
+        .expect(200);
+      expect(otroDia.body).toEqual([]);
+
+      // Y la fecha tampoco deja pasar a los eventos de otra categoría.
+      const concierto = await request(app.getHttpServer())
+        .get('/eventos?categoria=concierto&fecha=2026-11-22')
+        .expect(200);
+      expect(ids(concierto.body)).toEqual([6, 7]);
+    });
+
+    it('GET /eventos?fecha=21-11-2026 y ?fecha=2026-02-30 responden 400 con «La fecha … no es válida»', async () => {
+      for (const fecha of ['21-11-2026', '2026-02-30']) {
+        const res = await request(app.getHttpServer())
+          .get(`/eventos?fecha=${fecha}`)
+          .expect(400);
+
+        expect(res.body).toEqual({
+          statusCode: 400,
+          message: `La fecha ${fecha} no es válida`,
+          error: 'Bad Request',
+        });
+      }
+    });
+
+    it('GET /eventos?fecha= responde 200 con los 10 eventos porque una fecha vacía no filtra', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/eventos?fecha=')
+        .expect(200);
+
+      expect(ids(res.body)).toEqual(TODOS);
+    });
+
+    it('GET /eventos?fecha=2026-11-21&fecha=2026-11-22 responde 400 porque cada filtro admite un solo valor', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/eventos?fecha=2026-11-21&fecha=2026-11-22')
+        .expect(400);
+
+      expect(res.body).toEqual({
+        statusCode: 400,
+        message: 'Cada filtro admite un solo valor',
+        error: 'Bad Request',
+      });
+    });
   });
 
   describe('GET /eventos/ciudades', () => {
@@ -200,6 +314,90 @@ describe('Eventos (e2e)', () => {
         expect(res.body).toEqual({
           statusCode: 400,
           message: 'Validation failed (numeric string is expected)',
+          error: 'Bad Request',
+        });
+      }
+    });
+  });
+
+  describe('GET /eventos/:id/funciones', () => {
+    it('GET /eventos/4/funciones responde 200 con sus tres funciones en orden de inicio y exactamente sus cuatro campos', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/eventos/4/funciones')
+        .expect(200);
+
+      expect(res.body).toEqual([
+        {
+          id: 5,
+          eventoId: 4,
+          inicio: '2026-11-21T16:00:00-05:00',
+          precio: 25000,
+        },
+        {
+          id: 4,
+          eventoId: 4,
+          inicio: '2026-11-21T23:30:00-05:00',
+          precio: 25000,
+        },
+        {
+          id: 3,
+          eventoId: 4,
+          inicio: '2026-11-22T19:30:00-05:00',
+          precio: 25000,
+        },
+      ]);
+      for (const funcion of res.body) {
+        expect(Object.keys(funcion).sort()).toEqual([
+          'eventoId',
+          'id',
+          'inicio',
+          'precio',
+        ]);
+      }
+    });
+
+    it('GET /eventos/10/funciones responde 200 con una lista vacía', async () => {
+      // El evento 10 existe y no tiene funciones: no es un 404.
+      const res = await request(app.getHttpServer())
+        .get('/eventos/10/funciones')
+        .expect(200);
+
+      expect(res.body).toEqual([]);
+    });
+
+    it('GET /eventos/9999/funciones responde 404 con «El evento 9999 no existe»', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/eventos/9999/funciones')
+        .expect(404);
+
+      expect(res.body).toEqual({
+        statusCode: 404,
+        message: 'El evento 9999 no existe',
+        error: 'Not Found',
+      });
+    });
+
+    it('GET /eventos/0/funciones y GET /eventos/-1/funciones responden 404 con el mensaje del evento que no existe', async () => {
+      for (const id of ['0', '-1']) {
+        const res = await request(app.getHttpServer())
+          .get(`/eventos/${id}/funciones`)
+          .expect(404);
+
+        expect(res.body).toEqual({
+          statusCode: 404,
+          message: `El evento ${id} no existe`,
+          error: 'Not Found',
+        });
+      }
+    });
+
+    it('GET /eventos/abc/funciones y GET /eventos/1.5/funciones responden 400', async () => {
+      for (const ruta of ['/eventos/abc/funciones', '/eventos/1.5/funciones']) {
+        const res = await request(app.getHttpServer()).get(ruta).expect(400);
+
+        expect(res.body).toEqual({
+          statusCode: 400,
+          message: MENSAJE_DEL_PIPE,
           error: 'Bad Request',
         });
       }

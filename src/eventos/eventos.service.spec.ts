@@ -1,7 +1,33 @@
+import { isMainThread } from 'node:worker_threads';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { EventosService } from './eventos.service.js';
+import { FuncionesService } from '../funciones/funciones.service.js';
 import { CATEGORIAS, CLASIFICACIONES } from './entities/evento.entity.js';
 import type { Evento } from './entities/evento.entity.js';
+
+// D5: en el hilo principal las pruebas corren en Asia/Tokyo, 14 h por delante
+// de Colombia, para que un filtro por fecha que use la hora local del servidor
+// dé otro día. Stryker usa hilos y allí asignar TZ no cambia la zona: por eso
+// esta parte solo corre en el hilo principal.
+if (isMainThread) {
+  const zonaOriginal = process.env.TZ;
+
+  beforeAll(() => {
+    process.env.TZ = 'Asia/Tokyo';
+  });
+
+  afterAll(() => {
+    if (zonaOriginal === undefined) {
+      delete process.env.TZ;
+    } else {
+      process.env.TZ = zonaOriginal;
+    }
+  });
+
+  it('las pruebas corren en Asia/Tokyo, fuera de la zona de Colombia', () => {
+    expect(new Date('2026-11-22T03:30:00Z').getHours()).toBe(12);
+  });
+}
 
 // Los diez eventos de ejemplo aprobados en el plan (D7), sin descripción ni imagen.
 const EVENTOS_DE_EJEMPLO = [
@@ -137,7 +163,7 @@ describe('EventosService', () => {
   let service: EventosService;
 
   beforeEach(() => {
-    service = new EventosService();
+    service = new EventosService(new FuncionesService());
   });
 
   describe('findAll', () => {
@@ -295,6 +321,206 @@ describe('EventosService', () => {
         );
       }
     });
+
+    it('filtra por fecha en hora de Colombia', () => {
+      // Los resultados correctos, con UTC o con la hora de Tokio serían otros:
+      // 21 daría [1, 4, 6] con UTC y [] con Tokio; 23 daría [4, 7] con UTC.
+      expect(ids(service.findAll({ fecha: '2026-11-21' }))).toEqual([
+        1, 4, 5, 6,
+      ]);
+      expect(ids(service.findAll({ fecha: '2026-11-22' }))).toEqual([
+        1, 4, 6, 7, 8,
+      ]);
+      expect(ids(service.findAll({ fecha: '2026-11-23' }))).toEqual([]);
+      expect(ids(service.findAll({ fecha: '2026-11-20' }))).toEqual([]);
+      expect(ids(service.findAll({ fecha: '2026-11-24' }))).toEqual([]);
+
+      // Los eventos salen completos, no solo sus ids.
+      const del21 = service.findAll({ fecha: '2026-11-21' });
+      expect(del21).toEqual(
+        service.findAll({}).filter((evento) => [1, 4, 5, 6].includes(evento.id)),
+      );
+      for (const evento of del21) {
+        expect(Object.keys(evento).sort()).toEqual(CAMPOS_DEL_EVENTO);
+      }
+    });
+
+    it('combina la fecha con la categoría y la ciudad', () => {
+      expect(
+        ids(service.findAll({ categoria: 'teatro', fecha: '2026-11-21' })),
+      ).toEqual([4, 5]);
+      expect(
+        ids(
+          service.findAll({
+            categoria: 'teatro',
+            ciudad: 'Neiva',
+            fecha: '2026-11-22',
+          }),
+        ),
+      ).toEqual([4]);
+      expect(
+        ids(service.findAll({ categoria: 'concierto', fecha: '2026-11-22' })),
+      ).toEqual([6, 7]);
+      expect(
+        ids(service.findAll({ ciudad: 'Bogotá', fecha: '2026-11-22' })),
+      ).toEqual([]);
+      expect(
+        ids(service.findAll({ categoria: 'charla', fecha: '2026-11-21' })),
+      ).toEqual([]);
+
+      // Los tres filtros se aplican con «y»: cada uno quita eventos.
+      expect(
+        ids(service.findAll({ ciudad: 'Neiva', fecha: '2026-11-21' })),
+      ).toEqual([1, 4, 6]);
+      expect(
+        ids(service.findAll({ ciudad: 'bogota', fecha: '2026-11-21' })),
+      ).toEqual([5]);
+      expect(
+        ids(service.findAll({ categoria: 'cine', fecha: '2026-11-22' })),
+      ).toEqual([1]);
+      expect(
+        ids(
+          service.findAll({
+            categoria: 'teatro',
+            ciudad: 'Neiva',
+            fecha: '2026-11-21',
+          }),
+        ),
+      ).toEqual([4]);
+      expect(
+        ids(
+          service.findAll({
+            categoria: 'concierto',
+            ciudad: 'Pitalito',
+            fecha: '2026-11-22',
+          }),
+        ),
+      ).toEqual([7]);
+      expect(
+        ids(
+          service.findAll({
+            categoria: 'charla',
+            ciudad: 'Neiva',
+            fecha: '2026-11-22',
+          }),
+        ),
+      ).toEqual([8]);
+      expect(
+        ids(
+          service.findAll({
+            categoria: 'charla',
+            ciudad: 'Neiva',
+            fecha: '2026-11-21',
+          }),
+        ),
+      ).toEqual([]);
+    });
+
+    it('rechaza una fecha que no tiene el formato AAAA-MM-DD o que no existe', () => {
+      const invalidas = [
+        // Otro formato.
+        '21-11-2026',
+        '2026-1-5',
+        '2026/11/21',
+        '2026-11-21T00:00',
+        '20261-11-21',
+        'mañana',
+        // Sin recortar espacios.
+        ' 2026-11-21',
+        '2026-11-21 ',
+        ' ',
+        // Mes o día fuera del calendario.
+        '2026-13-01',
+        '2026-00-10',
+        '2026-11-00',
+        '2026-11-32',
+        '2026-01-32',
+        // Días que el mes no tiene.
+        '2026-02-30',
+        '2026-02-29',
+        '2026-04-31',
+        '2026-06-31',
+        '2026-09-31',
+        '2026-11-31',
+        // Bisiestos: divisible por 4 y no por 100, o divisible por 400.
+        '2028-02-30',
+        '1900-02-29',
+        '2100-02-29',
+      ];
+      for (const fecha of invalidas) {
+        expect(() => service.findAll({ fecha }), fecha).toThrow(
+          BadRequestException,
+        );
+        expect(() => service.findAll({ fecha }), fecha).toThrow(
+          new RegExp(`^La fecha ${fecha} no es válida$`),
+        );
+      }
+
+      // Una fecha imposible es un error, no una lista vacía, y se rechaza
+      // aunque los otros filtros sean válidos.
+      expect(() =>
+        service.findAll({
+          categoria: 'teatro',
+          ciudad: 'Neiva',
+          fecha: '2026-02-30',
+        }),
+      ).toThrow(/^La fecha 2026-02-30 no es válida$/);
+
+      // Orden de las revisiones (D6): primero los arreglos, después la
+      // categoría y al final la fecha.
+      expect(() =>
+        service.findAll({ categoria: 'magia', fecha: '2026-02-30' }),
+      ).toThrow(/^La categoría magia no existe$/);
+    });
+
+    it('acepta una fecha que existe en el calendario, con los bisiestos', () => {
+      const validas = [
+        '2000-02-29',
+        '2028-02-29',
+        '2026-02-28',
+        '2026-01-01',
+        '2026-01-31',
+        '2026-04-30',
+        '2026-06-30',
+        '2026-10-31',
+        '2026-12-31',
+      ];
+      for (const fecha of validas) {
+        // Ninguna tiene funciones: la lista vacía es la respuesta correcta.
+        expect(service.findAll({ fecha }), fecha).toEqual([]);
+      }
+    });
+
+    it('trata una fecha vacía como sin filtro', () => {
+      expect(ids(service.findAll({ fecha: '' }))).toEqual(TODOS);
+      expect(ids(service.findAll({ fecha: undefined }))).toEqual(TODOS);
+      expect(
+        ids(service.findAll({ categoria: '', ciudad: '', fecha: '' })),
+      ).toEqual(TODOS);
+      expect(ids(service.findAll({ categoria: 'teatro', fecha: '' }))).toEqual([
+        4, 5,
+      ]);
+      expect(ids(service.findAll({ ciudad: 'Neiva', fecha: '' }))).toEqual([
+        1, 4, 6, 8,
+      ]);
+    });
+
+    it('rechaza una fecha repetida', () => {
+      const repetidos = [
+        { fecha: ['2026-11-21', '2026-11-22'] },
+        { fecha: ['2026-11-21', '2026-11-21'] },
+        { categoria: 'teatro', fecha: ['2026-11-21', '2026-11-22'] },
+        { ciudad: 'Neiva', fecha: ['2026-11-21', '2026-11-22'] },
+        // Los arreglos se revisan antes que la categoría.
+        { categoria: 'magia', fecha: ['2026-11-21', '2026-11-22'] },
+      ];
+      for (const filtros of repetidos) {
+        expect(() => service.findAll(filtros)).toThrow(BadRequestException);
+        expect(() => service.findAll(filtros)).toThrow(
+          /^Cada filtro admite un solo valor$/,
+        );
+      }
+    });
   });
 
   describe('findOne', () => {
@@ -340,6 +566,53 @@ describe('EventosService', () => {
         'Neiva',
         'Pitalito',
       ]);
+    });
+  });
+
+  describe('findFunciones', () => {
+    it('devuelve las funciones del evento ordenadas por inicio', () => {
+      expect(service.findFunciones(4)).toEqual([
+        {
+          id: 5,
+          eventoId: 4,
+          inicio: '2026-11-21T16:00:00-05:00',
+          precio: 25000,
+        },
+        {
+          id: 4,
+          eventoId: 4,
+          inicio: '2026-11-21T23:30:00-05:00',
+          precio: 25000,
+        },
+        {
+          id: 3,
+          eventoId: 4,
+          inicio: '2026-11-22T19:30:00-05:00',
+          precio: 25000,
+        },
+      ]);
+      expect(service.findFunciones(6).map((f) => f.id)).toEqual([8, 7]);
+      expect(service.findFunciones(1).map((f) => f.id)).toEqual([1, 2]);
+    });
+
+    it('lanza NotFoundException con «El evento 9999 no existe»', () => {
+      expect(() => service.findFunciones(9999)).toThrow(NotFoundException);
+      expect(() => service.findFunciones(9999)).toThrow(
+        /^El evento 9999 no existe$/,
+      );
+      // El contrato incluye el 0 y los negativos.
+      expect(() => service.findFunciones(0)).toThrow(NotFoundException);
+      expect(() => service.findFunciones(0)).toThrow(/^El evento 0 no existe$/);
+      expect(() => service.findFunciones(-1)).toThrow(NotFoundException);
+      expect(() => service.findFunciones(-1)).toThrow(
+        /^El evento -1 no existe$/,
+      );
+    });
+
+    it('devuelve una lista vacía si el evento existe y no tiene funciones', () => {
+      for (const id of [2, 3, 9, 10]) {
+        expect(service.findFunciones(id), `evento ${id}`).toEqual([]);
+      }
     });
   });
 

@@ -32,6 +32,8 @@ No usa base de datos: los datos viven en memoria y se reinician al arrancar.
 | `GET /funciones/:id` | Una función, con el título, la ciudad y el lugar de su evento; 404 si no existe |
 | `GET /funciones/:id/asientos` | Los 40 asientos de la función, cada uno «disponible» u «ocupado» |
 | `POST /funciones/:id/compras` | Compra de 1 a 6 asientos con el nombre y el correo del comprador. Responde 201 con el código, los asientos, el total y la fecha; 409 si algún asiento ya está ocupado (y no ocupa ninguno); 400 si los datos no son válidos |
+| `GET /boletas/:codigo` | La boleta de una compra: el evento, el inicio, el lugar, la ciudad, los asientos, el nombre del comprador y su estado (`valida` o `usada`, con la fecha de uso). No trae el correo. El código se acepta en mayúsculas o en minúsculas; 404 si no existe |
+| `POST /boletas/:codigo/ingreso` | Valida el ingreso: marca la boleta como usada y responde 200 con la fecha de uso. Una segunda validación responde 409 con la fecha del primer uso, que no cambia; 404 si no existe |
 
 ## Comandos
 
@@ -88,3 +90,4 @@ El orden completo, los permisos de cada agente y lo que cambió respecto del dis
 | [003 · Funciones por evento](https://github.com/AbilsonRivera/Taquillera-Arnes/blob/main/specs/003-funciones-por-evento/spec.md) | [#6](https://github.com/Bredman01/Taquillera-Backend/pull/6) |
 | [004 · Mapa de asientos](https://github.com/AbilsonRivera/Taquillera-Arnes/blob/main/specs/004-mapa-de-asientos/spec.md) | [#7](https://github.com/Bredman01/Taquillera-Backend/pull/7) |
 | [005 · Compra con pago simulado](https://github.com/AbilsonRivera/Taquillera-Arnes/blob/main/specs/005-compra-pago-simulado/spec.md) | [#8](https://github.com/Bredman01/Taquillera-Backend/pull/8) |
+| [006 · Boleta con código QR y validación](https://github.com/AbilsonRivera/Taquillera-Arnes/blob/main/specs/006-boleta-por-codigo/spec.md) | [#9](https://github.com/Bredman01/Taquillera-Backend/pull/9) |

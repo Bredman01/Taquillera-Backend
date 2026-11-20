@@ -1,9 +1,20 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { EventosService } from '../eventos/eventos.service.js';
 import { FuncionesService } from '../funciones/funciones.service.js';
 import { ASIENTOS_POR_FILA, FILAS } from './entities/asiento.entity.js';
 import type { Asiento } from './entities/asiento.entity.js';
 import type { FuncionConEvento } from './entities/funcion-con-evento.entity.js';
+
+// Los ids del plano (A1 a E8), armados con las mismas constantes que usa
+// findAsientos: el plano se escribe una sola vez, en asiento.entity.ts.
+const IDS_DEL_PLANO: ReadonlySet<string> = new Set(
+  FILAS.flatMap((fila) =>
+    Array.from(
+      { length: ASIENTOS_POR_FILA },
+      (_, indice) => `${fila}${indice + 1}`,
+    ),
+  ),
+);
 
 @Injectable()
 export class AsientosService {
@@ -44,5 +55,37 @@ export class AsientosService {
         };
       }),
     );
+  }
+
+  // Si el id es uno de los 40 asientos del plano. Exacto: en mayúscula, sin
+  // espacios ni ceros a la izquierda. No mira si está libre u ocupado.
+  existeEnElPlano(id: string): boolean {
+    return IDS_DEL_PLANO.has(id);
+  }
+
+  // Ocupa todos los asientos pedidos en esa función, o ninguno: si alguno ya
+  // está ocupado, responde 409 con los no disponibles (en el orden pedido) y no
+  // ocupa nada. Es síncrono a propósito: entre comprobar y ocupar no hay ningún
+  // `await`, así que ninguna otra compra se puede colar. No valida el plano:
+  // eso lo hace quien compra, antes de llamar aquí.
+  ocupar(funcionId: number, ids: readonly string[]): void {
+    this.funciones.findOne(funcionId);
+    const deLaFuncion = this.ocupados.get(funcionId) ?? new Set<string>();
+
+    const noDisponibles = ids.filter((id) => deLaFuncion.has(id));
+    if (noDisponibles.length > 0) {
+      throw new ConflictException({
+        statusCode: 409,
+        message: `Estos asientos ya no están disponibles: ${noDisponibles.join(', ')}`,
+        error: 'Conflict',
+        asientos: noDisponibles,
+      });
+    }
+
+    // Los ids se copian uno a uno al Set: la lista recibida no se guarda.
+    for (const id of ids) {
+      deLaFuncion.add(id);
+    }
+    this.ocupados.set(funcionId, deLaFuncion);
   }
 }

@@ -8,5 +8,6 @@ import { AsientosService } from './asientos.service.js';
   imports: [EventosModule, FuncionesModule],
   controllers: [AsientosController],
   providers: [AsientosService],
+  exports: [AsientosService],
 })
 export class AsientosModule {}

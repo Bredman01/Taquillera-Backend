@@ -1,6 +1,6 @@
 # AGENTS.md — Taquillera Backend
 
-API REST del proyecto integrador **Cartelera y venta de boletas** (diplomado FET). Expone la cartelera (películas, funciones) y la venta de boletas al frontend `TaquilleraFrontend` (Next.js, `http://localhost:3000`).
+API REST del proyecto integrador **Cartelera y venta de boletas** (diplomado FET). Expone la cartelera de eventos pequeños (cine, teatro, conciertos y charlas), sus funciones y la venta de boletas al frontend `TaquilleraFrontend` (Next.js, `http://localhost:3000`).
 
 - **Stack:** Node.js 24 · TypeScript 6 (`strict`) · NestJS 12 sobre Express · Vitest 4 + Supertest · oxlint · Prettier.
 - **Base de datos:** todavía no hay. Mientras no se decida, los datos viven en memoria dentro del servicio de cada módulo. No instalar un ORM ni una base de datos sin que el equipo lo pida.
@@ -28,7 +28,7 @@ Variables de entorno (opcionales): `PORT` (por defecto `3001`) y `FRONTEND_URL` 
 
 ## Lo que el agente no deduciría solo
 
-- **El proyecto es ESM** (`"type": "module"`, `module: nodenext`). Todo import relativo lleva extensión `.js` aunque el archivo sea `.ts`: `import { PeliculasService } from './peliculas.service.js';`. Sin la extensión, la compilación falla.
+- **El proyecto es ESM** (`"type": "module"`, `module: nodenext`). Todo import relativo lleva extensión `.js` aunque el archivo sea `.ts`: `import { EventosService } from './eventos.service.js';`. Sin la extensión, la compilación falla.
 - `src/main.ts` usa `await bootstrap()` en el nivel superior; no lo cambies a `bootstrap();` (la regla `no-floating-promises` está en `error`).
 - El linter es **oxlint**, no ESLint. No agregues configuración de ESLint.
 - Vitest corre con `globals: true`: `describe`, `it`, `expect`, `beforeEach` no se importan. Para dobles de prueba usa `vi.fn()`, no `jest.fn()`.
@@ -40,7 +40,7 @@ Variables de entorno (opcionales): `PORT` (por defecto `3001`) y `FRONTEND_URL` 
 src/
   main.ts                 arranque, CORS y puerto
   app.module.ts           módulo raíz: importa los módulos de funcionalidad
-  <funcionalidad>/        un módulo por concepto del dominio (peliculas, funciones, compras...)
+  <funcionalidad>/        un módulo por concepto del dominio (eventos, funciones, compras...)
     <x>.module.ts
     <x>.controller.ts     rutas HTTP; sin lógica de negocio
     <x>.service.ts        lógica de negocio y datos
@@ -56,13 +56,13 @@ Para crear un módulo nuevo sigue la skill `nest-modulo` (`.claude/skills/nest-m
 
 ## Convenciones
 
-- **Idioma del dominio:** español para entidades, rutas y mensajes (`/peliculas`, `Pelicula`, `PeliculasService`); el código de framework queda en inglés.
-- **Nombres de archivo:** kebab-case con sufijo de rol (`peliculas.controller.ts`). Clases en PascalCase, métodos en camelCase.
-- **Rutas REST:** sustantivo en plural (`GET /peliculas`, `GET /peliculas/:id`). Usa `ParseIntPipe` en parámetros numéricos y `NotFoundException` cuando un recurso no existe (responde 404).
+- **Idioma del dominio:** español para entidades, rutas y mensajes (`/eventos`, `Evento`, `EventosService`); el código de framework queda en inglés.
+- **Nombres de archivo:** kebab-case con sufijo de rol (`eventos.controller.ts`). Clases en PascalCase, métodos en camelCase.
+- **Rutas REST:** sustantivo en plural (`GET /eventos`, `GET /eventos/:id`). Usa `ParseIntPipe` en parámetros numéricos y `NotFoundException` cuando un recurso no existe (responde 404).
 - **Estilo:** Prettier con comillas simples y coma final (`.prettierrc`). No desactives reglas del linter para que pase.
 - **Pruebas:** cada servicio y controlador nuevo trae su `*.spec.ts`; cada endpoint nuevo trae al menos un caso en `test/` (e2e), incluido el caso de error.
 - **Ramas:** se trabaja en ramas desde `main` (`feat/...`, `fix/...`, `chore/...`) y se llega a `main` solo por pull request.
-- **Commits:** Conventional Commits en español: `feat: listar películas de la cartelera`, `fix: ...`, `chore: ...`, `test: ...`, `docs: ...`.
+- **Commits:** Conventional Commits en español: `feat: listar eventos de la cartelera`, `fix: ...`, `chore: ...`, `test: ...`, `docs: ...`.
 
 ## Lo que el agente no debe hacer
 

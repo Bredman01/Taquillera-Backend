@@ -375,6 +375,16 @@ const CASOS_DE_400: Array<[string, unknown, string]> = [
     CORREO_INVALIDO,
   ],
   [
+    'correo válido seguido de otro texto, separado por un espacio',
+    cuerpo({ correo: 'ana@correo.co otro' }),
+    CORREO_INVALIDO,
+  ],
+  [
+    'correo válido seguido de otro correo, separado por una coma',
+    cuerpo({ correo: 'ana@correo.co,otra@correo.co' }),
+    CORREO_INVALIDO,
+  ],
+  [
     'correo de 255 caracteres',
     cuerpo({ correo: `${'a'.repeat(250)}@x.co` }),
     CORREO_INVALIDO,

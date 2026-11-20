@@ -34,6 +34,9 @@ Variables de entorno (opcionales): `PORT` (por defecto `3001`) y `FRONTEND_URL` 
 - Vitest corre con `globals: true`: `describe`, `it`, `expect`, `beforeEach` no se importan. Para dobles de prueba usa `vi.fn()`, no `jest.fn()`.
 - El puerto es **3001** porque el frontend ocupa el 3000.
 - **Los asientos ocupados tienen una sola fuente de verdad:** el servicio del módulo `asientos`, que los guarda en memoria por función. Todos los lugares tienen 5 filas (A a E) de 8 asientos. Cualquier módulo que venda o libere asientos pasa por ese servicio; ninguno lleva su propia lista.
+- **La compra es todo o nada.** `AsientosService.ocupar` comprueba y ocupa todos los asientos sin ningún `await` en medio: si uno está ocupado, no ocupa ninguno y la API responde 409 con la lista de los no disponibles.
+- **El cuerpo de una petición se valida a mano en el servicio**, con una regla y un mensaje por caso. No se usan `class-validator` ni `class-transformer`.
+- **Lo que cambia en cada ejecución va en un proveedor sustituible:** el código de la compra sale de `GeneradorCodigo` y la hora, de `Reloj`. Las pruebas los reemplazan para ser deterministas. Las fechas que la API escribe van en hora de Colombia, con `-05:00`.
 - **Las fechas van en hora de Colombia.** Cada función guarda su inicio como texto ISO con `-05:00`, y el día se calcula con `Intl` y `America/Bogota`, nunca con la hora local del servidor. Las pruebas fuerzan otra zona (`Asia/Tokyo`) antes de importar el código, con `vi.hoisted`: si la zona se fuerza después, los formateadores ya están creados y la prueba no protege nada.
 
 ## Organización del código

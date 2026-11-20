@@ -10,5 +10,6 @@ import { Reloj } from './reloj.js';
   imports: [FuncionesModule, AsientosModule],
   controllers: [ComprasController],
   providers: [ComprasService, GeneradorCodigo, Reloj],
+  exports: [ComprasService, Reloj],
 })
 export class ComprasModule {}

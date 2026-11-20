@@ -81,6 +81,17 @@ export class ComprasService {
     };
   }
 
+  // Lee una compra por su código, exacto: no cambia mayúsculas ni recorta
+  // espacios. Devuelve una copia, también de la lista de asientos, así que
+  // modificarla no altera lo guardado. Si no hay compra, devuelve undefined.
+  findByCodigo(codigo: string): Compra | undefined {
+    const compra = this.compras.get(codigo);
+    if (compra === undefined) {
+      return undefined;
+    }
+    return { ...compra, asientos: [...compra.asientos] };
+  }
+
   // Responde con la primera regla que falla. Un cuerpo que no es un objeto se
   // trata como un objeto vacío. El nombre y el correo salen recortados.
   private validar(cuerpo: unknown): CrearCompraDto {

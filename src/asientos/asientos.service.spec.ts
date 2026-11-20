@@ -178,9 +178,7 @@ describe('AsientosService', () => {
   it('los ocupados son de cada función: las otras nueve, incluidas la 3 y la 4 del mismo evento, tienen sus 40 asientos disponibles', () => {
     // La 5 se consulta primero: lo que ocupa no debe pasar a las otras.
     expect(
-      service
-        .findAsientos(5)
-        .filter((asiento) => asiento.estado === 'ocupado'),
+      service.findAsientos(5).filter((asiento) => asiento.estado === 'ocupado'),
     ).toHaveLength(6);
 
     for (const funcionId of SIN_OCUPADOS) {

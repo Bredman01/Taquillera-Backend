@@ -69,7 +69,7 @@ export class EventosService {
   }
 
   findOne(id: number): Evento {
-    const evento = this.eventos.find((p) => p.id === id);
+    const evento = this.eventos.find((e) => e.id === id);
     if (!evento) {
       throw new NotFoundException(`El evento ${id} no existe`);
     }

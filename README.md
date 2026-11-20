@@ -80,4 +80,4 @@ El orden completo, los permisos de cada agente y lo que cambió respecto del dis
 
 | Spec | Pull request |
 |---|---|
-| [002 · Eventos y filtros de la cartelera](https://github.com/AbilsonRivera/Taquillera-Arnes/blob/main/specs/002-eventos-y-filtros/spec.md) | PENDIENTE |
+| [002 · Eventos y filtros de la cartelera](https://github.com/AbilsonRivera/Taquillera-Arnes/blob/main/specs/002-eventos-y-filtros/spec.md) | [#5](https://github.com/Bredman01/Taquillera-Backend/pull/5) |

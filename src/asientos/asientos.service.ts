@@ -66,8 +66,14 @@ export class AsientosService {
   // Ocupa todos los asientos pedidos en esa función, o ninguno: si alguno ya
   // está ocupado, responde 409 con los no disponibles (en el orden pedido) y no
   // ocupa nada. Es síncrono a propósito: entre comprobar y ocupar no hay ningún
-  // `await`, así que ninguna otra compra se puede colar. No valida el plano:
-  // eso lo hace quien compra, antes de llamar aquí.
+  // `await`, así que ninguna otra compra se puede colar.
+  //
+  // Solo comprueba que la función existe y que los asientos están libres. Quien
+  // lo llama (hoy ComprasService, con las reglas 1 a 5 del contrato) debe haber
+  // comprobado antes que la lista no está vacía, que no tiene repetidos y que
+  // cada id existe en el plano (`existeEnElPlano`). Si no, se guardarían ids
+  // fuera del plano, el 409 podría nombrar dos veces el mismo asiento y una
+  // lista vacía no haría nada.
   ocupar(funcionId: number, ids: readonly string[]): void {
     this.funciones.findOne(funcionId);
     const deLaFuncion = this.ocupados.get(funcionId) ?? new Set<string>();

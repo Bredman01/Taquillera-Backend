@@ -37,6 +37,9 @@ Variables de entorno (opcionales): `PORT` (por defecto `3001`) y `FRONTEND_URL` 
 - **La compra es todo o nada.** `AsientosService.ocupar` comprueba y ocupa todos los asientos sin ningún `await` en medio: si uno está ocupado, no ocupa ninguno y la API responde 409 con la lista de los no disponibles.
 - **El cuerpo de una petición se valida a mano en el servicio**, con una regla y un mensaje por caso. No se usan `class-validator` ni `class-transformer`.
 - **Lo que cambia en cada ejecución va en un proveedor sustituible:** el código de la compra sale de `GeneradorCodigo` y la hora, de `Reloj`. Las pruebas los reemplazan para ser deterministas. Las fechas que la API escribe van en hora de Colombia, con `-05:00`.
+- **Una boleta no es otra copia de los datos:** es la compra leída por su código (`ComprasService.findByCodigo`) con los datos de su función. El módulo `boletas` solo guarda el uso: el código y la fecha del primer ingreso. La respuesta nunca lleva el correo del comprador.
+- **Validar el ingreso es síncrono a propósito.** `BoletasService.validar` no tiene ningún `await` entre comprobar el uso y guardarlo, así que dos validaciones seguidas de la misma boleta no pueden dar las dos por buena: la segunda responde 409 con la fecha del primer uso. Responde 200 y no 201, porque no crea un recurso.
+- Los códigos se comparan en mayúsculas: la API los acepta en mayúsculas o en minúsculas y siempre los responde en mayúsculas.
 - **Las fechas van en hora de Colombia.** Cada función guarda su inicio como texto ISO con `-05:00`, y el día se calcula con `Intl` y `America/Bogota`, nunca con la hora local del servidor. Las pruebas fuerzan otra zona (`Asia/Tokyo`) antes de importar el código, con `vi.hoisted`: si la zona se fuerza después, los formateadores ya están creados y la prueba no protege nada.
 
 ## Organización del código

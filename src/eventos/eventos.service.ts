@@ -5,10 +5,13 @@ import {
 } from '@nestjs/common';
 import { CATEGORIAS } from './entities/evento.entity.js';
 import type { Evento } from './entities/evento.entity.js';
+import type { Funcion } from '../funciones/entities/funcion.entity.js';
+import { FuncionesService } from '../funciones/funciones.service.js';
 
 export interface FiltrosEventos {
   categoria?: string | string[];
   ciudad?: string | string[];
+  fecha?: string | string[];
 }
 
 const sinTildes = (texto: string): string =>
@@ -16,6 +19,31 @@ const sinTildes = (texto: string): string =>
 
 const normalizar = (texto: string): string =>
   sinTildes(texto).toLocaleLowerCase('es').trim();
+
+const FORMATO_FECHA = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+const DIAS_POR_MES = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+// Calendario gregoriano: divisible por 4 y no por 100, o divisible por 400.
+const esBisiesto = (anio: number): boolean =>
+  (anio % 4 === 0 && anio % 100 !== 0) || anio % 400 === 0;
+
+// AAAA-MM-DD con un mes del 01 al 12 y un día del 01 al último de ese mes.
+// No recorta espacios: ' 2026-11-21' no es válida.
+const esFechaValida = (fecha: string): boolean => {
+  const partes = FORMATO_FECHA.exec(fecha);
+  if (partes === null) {
+    return false;
+  }
+  const anio = Number(partes[1]);
+  const mes = Number(partes[2]);
+  const dia = Number(partes[3]);
+  if (mes < 1 || mes > 12) {
+    return false;
+  }
+  const ultimoDia = mes === 2 && esBisiesto(anio) ? 29 : DIAS_POR_MES[mes - 1];
+  return dia >= 1 && dia <= ultimoDia;
+};
 
 const afiche = (titulo: string): string =>
   `https://placehold.co/400x600/png?text=${encodeURIComponent(sinTildes(titulo)).replace(/%20/g, '+')}`;
@@ -145,15 +173,22 @@ export class EventosService {
     },
   ];
 
+  constructor(private readonly funciones: FuncionesService) {}
+
   findAll(filtros: FiltrosEventos): Evento[] {
     const categoria = this.leerFiltro(filtros.categoria);
     const ciudad = this.leerFiltro(filtros.ciudad);
+    const fecha = this.leerFiltro(filtros.fecha);
 
     if (
       categoria !== undefined &&
       !CATEGORIAS.some((valida) => valida === categoria)
     ) {
       throw new BadRequestException(`La categoría ${categoria} no existe`);
+    }
+
+    if (fecha !== undefined && !esFechaValida(fecha)) {
+      throw new BadRequestException(`La fecha ${fecha} no es válida`);
     }
 
     const ciudadBuscada = ciudad === undefined ? undefined : normalizar(ciudad);
@@ -163,7 +198,9 @@ export class EventosService {
         (evento) =>
           (categoria === undefined || evento.categoria === categoria) &&
           (ciudadBuscada === undefined ||
-            normalizar(evento.ciudad) === ciudadBuscada),
+            normalizar(evento.ciudad) === ciudadBuscada) &&
+          (fecha === undefined ||
+            this.funciones.tieneFuncionEn(evento.id, fecha)),
       )
       .map((evento) => ({ ...evento }));
   }
@@ -179,6 +216,13 @@ export class EventosService {
   findCiudades(): string[] {
     const ciudades = new Set(this.eventos.map((evento) => evento.ciudad));
     return [...ciudades].sort((a, b) => a.localeCompare(b, 'es'));
+  }
+
+  // Lanza NotFoundException si el evento no existe; un evento sin funciones
+  // devuelve una lista vacía.
+  findFunciones(id: number): Funcion[] {
+    this.findOne(id);
+    return this.funciones.findByEvento(id);
   }
 
   private leerFiltro(valor: string | string[] | undefined): string | undefined {

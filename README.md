@@ -25,9 +25,10 @@ No usa base de datos: los datos viven en memoria y se reinician al arrancar.
 
 | Ruta | Qué devuelve |
 |---|---|
-| `GET /eventos` | Los eventos. Se filtra con `?categoria=` (`cine`, `teatro`, `concierto`, `charla`) y `?ciudad=` |
+| `GET /eventos` | Los eventos. Se filtra con `?categoria=` (`cine`, `teatro`, `concierto`, `charla`), `?ciudad=` y `?fecha=AAAA-MM-DD` |
 | `GET /eventos/ciudades` | Las ciudades que tienen eventos, en orden alfabético |
 | `GET /eventos/:id` | Un evento; 404 si no existe |
+| `GET /eventos/:id/funciones` | Las funciones de un evento, de la más próxima a la más lejana |
 
 ## Comandos
 
@@ -80,4 +81,5 @@ El orden completo, los permisos de cada agente y lo que cambió respecto del dis
 
 | Spec | Pull request |
 |---|---|
-| [002 · Eventos y filtros de la cartelera](https://github.com/AbilsonRivera/Taquillera-Arnes/blob/main/specs/002-eventos-y-filtros/spec.md) | PENDIENTE |
+| [002 · Eventos y filtros de la cartelera](https://github.com/AbilsonRivera/Taquillera-Arnes/blob/main/specs/002-eventos-y-filtros/spec.md) | [#5](https://github.com/Bredman01/Taquillera-Backend/pull/5) |
+| [003 · Funciones por evento](https://github.com/AbilsonRivera/Taquillera-Arnes/blob/main/specs/003-funciones-por-evento/spec.md) | [#6](https://github.com/Bredman01/Taquillera-Backend/pull/6) |

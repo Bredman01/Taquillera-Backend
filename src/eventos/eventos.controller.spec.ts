@@ -22,6 +22,7 @@ describe('EventosController', () => {
     findAll: vi.fn(),
     findOne: vi.fn(),
     findCiudades: vi.fn(),
+    findFunciones: vi.fn(),
   };
 
   beforeEach(async () => {
@@ -87,5 +88,86 @@ describe('EventosController', () => {
       throw new NotFoundException('El evento 9999 no existe');
     });
     expect(() => controller.findOne(9999)).toThrow(NotFoundException);
+  });
+
+  it('findAll pasa la categoría, la ciudad y la fecha de la consulta al servicio', () => {
+    service.findAll.mockReturnValue([eventoDePrueba]);
+
+    expect(controller.findAll('teatro', 'Neiva', '2026-11-22')).toEqual([
+      eventoDePrueba,
+    ]);
+    expect(service.findAll).toHaveBeenLastCalledWith({
+      categoria: 'teatro',
+      ciudad: 'Neiva',
+      fecha: '2026-11-22',
+    });
+
+    // La fecha llega a su propio filtro, sin cruzarse con los otros dos.
+    controller.findAll(undefined, undefined, '2026-11-21');
+    expect(service.findAll).toHaveBeenLastCalledWith({
+      categoria: undefined,
+      ciudad: undefined,
+      fecha: '2026-11-21',
+    });
+    controller.findAll('concierto', undefined, undefined);
+    expect(service.findAll).toHaveBeenLastCalledWith({
+      categoria: 'concierto',
+      ciudad: undefined,
+      fecha: undefined,
+    });
+    controller.findAll(undefined, 'Bogotá', undefined);
+    expect(service.findAll).toHaveBeenLastCalledWith({
+      categoria: undefined,
+      ciudad: 'Bogotá',
+      fecha: undefined,
+    });
+
+    // Sin transformar: una fecha vacía o repetida llega tal cual al servicio.
+    controller.findAll(undefined, undefined, '');
+    expect(service.findAll).toHaveBeenLastCalledWith({
+      categoria: undefined,
+      ciudad: undefined,
+      fecha: '',
+    });
+    controller.findAll(undefined, undefined, ['2026-11-21', '2026-11-22']);
+    expect(service.findAll).toHaveBeenLastCalledWith({
+      categoria: undefined,
+      ciudad: undefined,
+      fecha: ['2026-11-21', '2026-11-22'],
+    });
+    expect(service.findAll).toHaveBeenCalledTimes(6);
+  });
+
+  it('findFunciones llama al servicio con el id y devuelve su resultado', () => {
+    const funciones = [
+      {
+        id: 5,
+        eventoId: 4,
+        inicio: '2026-11-21T16:00:00-05:00',
+        precio: 25000,
+      },
+      {
+        id: 4,
+        eventoId: 4,
+        inicio: '2026-11-21T23:30:00-05:00',
+        precio: 25000,
+      },
+    ];
+    service.findFunciones.mockReturnValue(funciones);
+
+    expect(controller.findFunciones(4)).toEqual(funciones);
+    expect(service.findFunciones).toHaveBeenCalledTimes(1);
+    expect(service.findFunciones).toHaveBeenCalledWith(4);
+  });
+
+  it('findFunciones propaga la NotFoundException del servicio', () => {
+    service.findFunciones.mockImplementation(() => {
+      throw new NotFoundException('El evento 9999 no existe');
+    });
+    expect(() => controller.findFunciones(9999)).toThrow(NotFoundException);
+    expect(() => controller.findFunciones(9999)).toThrow(
+      /^El evento 9999 no existe$/,
+    );
+    expect(service.findFunciones).toHaveBeenCalledWith(9999);
   });
 });

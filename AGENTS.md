@@ -33,6 +33,7 @@ Variables de entorno (opcionales): `PORT` (por defecto `3001`) y `FRONTEND_URL` 
 - El linter es **oxlint**, no ESLint. No agregues configuración de ESLint.
 - Vitest corre con `globals: true`: `describe`, `it`, `expect`, `beforeEach` no se importan. Para dobles de prueba usa `vi.fn()`, no `jest.fn()`.
 - El puerto es **3001** porque el frontend ocupa el 3000.
+- **Las fechas van en hora de Colombia.** Cada función guarda su inicio como texto ISO con `-05:00`, y el día se calcula con `Intl` y `America/Bogota`, nunca con la hora local del servidor. Las pruebas fuerzan otra zona (`Asia/Tokyo`) antes de importar el código, con `vi.hoisted`: si la zona se fuerza después, los formateadores ya están creados y la prueba no protege nada.
 
 ## Organización del código
 

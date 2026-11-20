@@ -1,3 +1,4 @@
+import { NotFoundException } from '@nestjs/common';
 import { FuncionesService } from './funciones.service.js';
 import { diaEnColombia } from './hora-colombia.js';
 import type { Funcion } from './entities/funcion.entity.js';
@@ -212,5 +213,56 @@ describe('FuncionesService', () => {
 
     // Un evento que no existe no tiene funciones ningún día.
     expect(service.tieneFuncionEn(9999, '2026-11-21')).toBe(false);
+  });
+
+  it('findOne devuelve una copia de la función con ese id', () => {
+    expect(service.findOne(5)).toEqual({
+      id: 5,
+      eventoId: 4,
+      inicio: '2026-11-21T16:00:00-05:00',
+      precio: 25000,
+    });
+    expect(service.findOne(10)).toEqual({
+      id: 10,
+      eventoId: 8,
+      inicio: '2026-11-22T10:30:00-05:00',
+      precio: 8000,
+    });
+
+    // Cada id devuelve su propia función, con exactamente los cuatro campos.
+    for (const esperada of FUNCIONES_DE_EJEMPLO) {
+      const funcion = service.findOne(esperada.id);
+      expect(funcion, `función ${esperada.id}`).toEqual(esperada);
+      expect(Object.keys(funcion).sort()).toEqual([
+        'eventoId',
+        'id',
+        'inicio',
+        'precio',
+      ]);
+    }
+
+    // Es una copia: cambiarla no cambia los datos internos.
+    const copia = service.findOne(5);
+    copia.precio = 1;
+    copia.inicio = '2000-01-01T00:00:00-05:00';
+    copia.eventoId = 99;
+
+    expect(service.findOne(5)).toEqual({
+      id: 5,
+      eventoId: 4,
+      inicio: '2026-11-21T16:00:00-05:00',
+      precio: 25000,
+    });
+    expect(service.findOne(5)).not.toBe(service.findOne(5));
+    expect(todas()).toEqual(FUNCIONES_DE_EJEMPLO);
+  });
+
+  it('findOne lanza NotFoundException con «La función 9999 no existe», también con 0 y -1', () => {
+    for (const id of [9999, 0, -1]) {
+      expect(() => service.findOne(id)).toThrow(NotFoundException);
+      expect(() => service.findOne(id)).toThrow(
+        new RegExp(`^La función ${id} no existe$`),
+      );
+    }
   });
 });

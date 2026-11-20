@@ -29,6 +29,8 @@ No usa base de datos: los datos viven en memoria y se reinician al arrancar.
 | `GET /eventos/ciudades` | Las ciudades que tienen eventos, en orden alfabético |
 | `GET /eventos/:id` | Un evento; 404 si no existe |
 | `GET /eventos/:id/funciones` | Las funciones de un evento, de la más próxima a la más lejana |
+| `GET /funciones/:id` | Una función, con el título, la ciudad y el lugar de su evento; 404 si no existe |
+| `GET /funciones/:id/asientos` | Los 40 asientos de la función, cada uno «disponible» u «ocupado» |
 
 ## Comandos
 
@@ -83,3 +85,4 @@ El orden completo, los permisos de cada agente y lo que cambió respecto del dis
 |---|---|
 | [002 · Eventos y filtros de la cartelera](https://github.com/AbilsonRivera/Taquillera-Arnes/blob/main/specs/002-eventos-y-filtros/spec.md) | [#5](https://github.com/Bredman01/Taquillera-Backend/pull/5) |
 | [003 · Funciones por evento](https://github.com/AbilsonRivera/Taquillera-Arnes/blob/main/specs/003-funciones-por-evento/spec.md) | [#6](https://github.com/Bredman01/Taquillera-Backend/pull/6) |
+| [004 · Mapa de asientos](https://github.com/AbilsonRivera/Taquillera-Arnes/blob/main/specs/004-mapa-de-asientos/spec.md) | [#7](https://github.com/Bredman01/Taquillera-Backend/pull/7) |

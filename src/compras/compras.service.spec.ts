@@ -920,4 +920,120 @@ describe('ComprasService', () => {
     // Lo guardado no es el mismo arreglo que se devolvió.
     expect(guardadas(service)[0].asientos).not.toBe(resultado.asientos);
   });
+
+  // Spec 006: la boleta se lee de las compras que ya guarda este servicio. Aquí
+  // la lectura es exacta: pasar el código a mayúsculas lo hace BoletasService.
+  describe('findByCodigo', () => {
+    // La compra que devuelve findByCodigo, o un error claro si no hay ninguna:
+    // así una lectura que devuelve undefined no se confunde con un campo mal.
+    const leer = (service: ComprasService, codigo: string) => {
+      const compra = service.findByCodigo(codigo);
+      if (compra === undefined) {
+        throw new Error(`No hay una compra con el código ${codigo}`);
+      }
+      return compra;
+    };
+
+    // CA-1 · la boleta lee de aquí el nombre y el correo guardados.
+    it('findByCodigo devuelve la compra guardada con ese código, con su nombre y su correo', () => {
+      const { service } = armar(enSecuencia(['K7Q2M9XA', 'WXYZ5678']));
+      service.crear(1, cuerpo({ asientos: ['A1', 'A2'] }));
+      service.crear(
+        2,
+        cuerpo({
+          asientos: ['B3'],
+          nombre: 'Luis Gómez',
+          correo: 'luis@correo.co',
+        }),
+      );
+
+      // Se pide primero la segunda compra: no es «la primera» ni «la última».
+      const luis = service.findByCodigo('WXYZ5678');
+      expect(luis).toEqual({
+        codigo: 'WXYZ5678',
+        funcionId: 2,
+        asientos: ['B3'],
+        total: 15000,
+        fecha: FECHA_DEL_INSTANTE,
+        nombre: 'Luis Gómez',
+        correo: 'luis@correo.co',
+      });
+
+      const ana = service.findByCodigo('K7Q2M9XA');
+      expect(ana).toEqual({
+        codigo: 'K7Q2M9XA',
+        funcionId: 1,
+        asientos: ['A1', 'A2'],
+        total: 30000,
+        fecha: FECHA_DEL_INSTANTE,
+        nombre: 'Ana Pérez',
+        correo: 'ana@correo.co',
+      });
+      // Los siete campos de la compra, y nada más.
+      expect(Object.keys(ana ?? {}).sort()).toEqual([
+        'asientos',
+        'codigo',
+        'correo',
+        'fecha',
+        'funcionId',
+        'nombre',
+        'total',
+      ]);
+    });
+
+    // Sin criterio (D2 y D4): la búsqueda es exacta.
+    it('findByCodigo devuelve undefined si no hay una compra con ese código, también en minúsculas: la búsqueda es exacta', () => {
+      const { service } = armar(enSecuencia(['K7Q2M9XA']));
+      service.crear(1, cuerpo());
+
+      // El código escrito tal cual sí existe.
+      expect(leer(service, 'K7Q2M9XA').codigo).toBe('K7Q2M9XA');
+
+      // Uno que no existe, y el de la compra real en minúsculas y mezclado.
+      expect(service.findByCodigo('ZZZZ9999')).toBeUndefined();
+      expect(service.findByCodigo('k7q2m9xa')).toBeUndefined();
+      expect(service.findByCodigo('K7q2M9xA')).toBeUndefined();
+
+      // Sin ninguna compra guardada tampoco hay nada que leer.
+      expect(armar().service.findByCodigo('ABCD1234')).toBeUndefined();
+    });
+
+    // Sin criterio (D2): una copia, también de la lista de asientos.
+    it('modificar lo que devuelve findByCodigo no altera la compra guardada', () => {
+      const { service } = armar(enSecuencia(['K7Q2M9XA']));
+      service.crear(1, cuerpo({ asientos: ['A1', 'A2'] }));
+      const esperada = {
+        codigo: 'K7Q2M9XA',
+        funcionId: 1,
+        asientos: ['A1', 'A2'],
+        total: 30000,
+        fecha: FECHA_DEL_INSTANTE,
+        nombre: 'Ana Pérez',
+        correo: 'ana@correo.co',
+      };
+
+      const leida = leer(service, 'K7Q2M9XA');
+      leida.asientos[0] = 'Z9';
+      leida.asientos.push('E8');
+      leida.codigo = 'XXXXXXXX';
+      leida.funcionId = 9;
+      leida.total = 1;
+      leida.fecha = 'ayer';
+      leida.nombre = 'Otro';
+      leida.correo = 'otro@correo.co';
+
+      // Lo guardado no cambió, ni en el Map ni al leerlo otra vez.
+      expect(guardadas(service)).toEqual([esperada]);
+      expect([...service['compras'].keys()]).toEqual(['K7Q2M9XA']);
+      const otraVez = leer(service, 'K7Q2M9XA');
+      expect(otraVez).toEqual(esperada);
+
+      // Ni la compra ni su lista de asientos son los mismos objetos que se
+      // devolvieron antes ni los que están guardados.
+      expect(otraVez).not.toBe(leida);
+      expect(otraVez.asientos).not.toBe(leida.asientos);
+      expect(guardadas(service)[0]).not.toBe(otraVez);
+      expect(guardadas(service)[0].asientos).not.toBe(otraVez.asientos);
+    });
+  });
 });

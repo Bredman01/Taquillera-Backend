@@ -68,9 +68,24 @@ describe('FuncionesService', () => {
   it('findByEvento devuelve las funciones del evento ordenadas por inicio, de la más próxima a la más lejana', () => {
     // El evento 4 guarda sus funciones fuera de orden: 3, 4 y 5.
     expect(service.findByEvento(4)).toEqual([
-      { id: 5, eventoId: 4, inicio: '2026-11-21T16:00:00-05:00', precio: 25000 },
-      { id: 4, eventoId: 4, inicio: '2026-11-21T23:30:00-05:00', precio: 25000 },
-      { id: 3, eventoId: 4, inicio: '2026-11-22T19:30:00-05:00', precio: 25000 },
+      {
+        id: 5,
+        eventoId: 4,
+        inicio: '2026-11-21T16:00:00-05:00',
+        precio: 25000,
+      },
+      {
+        id: 4,
+        eventoId: 4,
+        inicio: '2026-11-21T23:30:00-05:00',
+        precio: 25000,
+      },
+      {
+        id: 3,
+        eventoId: 4,
+        inicio: '2026-11-22T19:30:00-05:00',
+        precio: 25000,
+      },
     ]);
 
     // Con el 6 el orden sale de mayor a menor id y con el 1, de menor a mayor:
@@ -149,9 +164,24 @@ describe('FuncionesService', () => {
     lista.length = 0;
 
     expect(service.findByEvento(4)).toEqual([
-      { id: 5, eventoId: 4, inicio: '2026-11-21T16:00:00-05:00', precio: 25000 },
-      { id: 4, eventoId: 4, inicio: '2026-11-21T23:30:00-05:00', precio: 25000 },
-      { id: 3, eventoId: 4, inicio: '2026-11-22T19:30:00-05:00', precio: 25000 },
+      {
+        id: 5,
+        eventoId: 4,
+        inicio: '2026-11-21T16:00:00-05:00',
+        precio: 25000,
+      },
+      {
+        id: 4,
+        eventoId: 4,
+        inicio: '2026-11-21T23:30:00-05:00',
+        precio: 25000,
+      },
+      {
+        id: 3,
+        eventoId: 4,
+        inicio: '2026-11-22T19:30:00-05:00',
+        precio: 25000,
+      },
     ]);
     expect(todas()).toEqual(FUNCIONES_DE_EJEMPLO);
     expect(service.findByEvento(4)[0]).not.toBe(service.findByEvento(4)[0]);

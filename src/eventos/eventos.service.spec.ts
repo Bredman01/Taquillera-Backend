@@ -239,9 +239,7 @@ describe('EventosService', () => {
       expect(ids(service.findAll({ categoria: 'cine' }))).toEqual([1, 2, 3]);
       expect(ids(service.findAll({ categoria: 'teatro' }))).toEqual([4, 5]);
       expect(ids(service.findAll({ categoria: 'concierto' }))).toEqual([6, 7]);
-      expect(ids(service.findAll({ categoria: 'charla' }))).toEqual([
-        8, 9, 10,
-      ]);
+      expect(ids(service.findAll({ categoria: 'charla' }))).toEqual([8, 9, 10]);
     });
 
     it('filtra por ciudad', () => {
@@ -346,7 +344,9 @@ describe('EventosService', () => {
       // Los eventos salen completos, no solo sus ids.
       const del21 = service.findAll({ fecha: '2026-11-21' });
       expect(del21).toEqual(
-        service.findAll({}).filter((evento) => [1, 4, 5, 6].includes(evento.id)),
+        service
+          .findAll({})
+          .filter((evento) => [1, 4, 5, 6].includes(evento.id)),
       );
       for (const evento of del21) {
         expect(Object.keys(evento).sort()).toEqual(CAMPOS_DEL_EVENTO);

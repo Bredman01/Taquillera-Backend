@@ -1,4 +1,3 @@
-import { isMainThread } from 'node:worker_threads';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { EventosService } from './eventos.service.js';
 import { FuncionesService } from '../funciones/funciones.service.js';
@@ -7,15 +6,24 @@ import type { Evento } from './entities/evento.entity.js';
 
 // D5: en el hilo principal las pruebas corren en Asia/Tokyo, 14 h por delante
 // de Colombia, para que un filtro por fecha que use la hora local del servidor
-// dé otro día. Stryker usa hilos y allí asignar TZ no cambia la zona: por eso
-// esta parte solo corre en el hilo principal.
-if (isMainThread) {
-  const zonaOriginal = process.env.TZ;
-
-  beforeAll(() => {
+// dé otro día. La zona se asigna en vi.hoisted, que corre antes de los import:
+// EventosService importa FuncionesService, que importa hora-colombia.ts, y su
+// formateador Intl se crea al importar el módulo y fija su zona en ese
+// momento. Asignada en beforeAll llegaría tarde, y un formateador sin
+// `timeZone` tomaría la zona de la máquina. Stryker usa hilos y allí asignar
+// TZ no cambia la zona: por eso solo se fuerza en el hilo principal.
+// vi.hoisted no puede usar los import del archivo, así que isMainThread se
+// importa dentro.
+const { zonaOriginal, zonaForzada } = await vi.hoisted(async () => {
+  const { isMainThread } = await import('node:worker_threads');
+  const original = process.env.TZ;
+  if (isMainThread) {
     process.env.TZ = 'Asia/Tokyo';
-  });
+  }
+  return { zonaOriginal: original, zonaForzada: isMainThread };
+});
 
+if (zonaForzada) {
   afterAll(() => {
     if (zonaOriginal === undefined) {
       delete process.env.TZ;
@@ -484,6 +492,10 @@ describe('EventosService', () => {
         '2026-06-30',
         '2026-10-31',
         '2026-12-31',
+        // Días 30 y 31 de años bisiestos: solo febrero tiene 29 días.
+        '2028-01-31',
+        '2028-04-30',
+        '2000-12-31',
       ];
       for (const fecha of validas) {
         // Ninguna tiene funciones: la lista vacía es la respuesta correcta.

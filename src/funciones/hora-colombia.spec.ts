@@ -1,17 +1,24 @@
-import { isMainThread } from 'node:worker_threads';
 import { diaEnColombia, ZONA_COLOMBIA } from './hora-colombia.js';
 
 // D5: en el hilo principal las pruebas corren en Asia/Tokyo, 14 h por delante
 // de Colombia, para que un código que use la hora local del servidor dé otro
-// día y otra hora. Stryker usa hilos y allí asignar TZ no cambia la zona:
-// por eso esta parte solo corre en el hilo principal.
-if (isMainThread) {
-  const zonaOriginal = process.env.TZ;
-
-  beforeAll(() => {
+// día y otra hora. La zona se asigna en vi.hoisted, que corre antes de los
+// import: el formateador Intl de hora-colombia.ts se crea al importar el
+// módulo y fija su zona en ese momento. Asignada en beforeAll llegaría tarde,
+// y un formateador sin `timeZone` tomaría la zona de la máquina. Stryker usa
+// hilos y allí asignar TZ no cambia la zona: por eso solo se fuerza en el
+// hilo principal. vi.hoisted no puede usar los import del archivo, así que
+// isMainThread se importa dentro.
+const { zonaOriginal, zonaForzada } = await vi.hoisted(async () => {
+  const { isMainThread } = await import('node:worker_threads');
+  const original = process.env.TZ;
+  if (isMainThread) {
     process.env.TZ = 'Asia/Tokyo';
-  });
+  }
+  return { zonaOriginal: original, zonaForzada: isMainThread };
+});
 
+if (zonaForzada) {
   afterAll(() => {
     if (zonaOriginal === undefined) {
       delete process.env.TZ;

@@ -4,6 +4,19 @@ import request from 'supertest';
 import { App } from 'supertest/types.js';
 import { AppModule } from './../src/app.module.js';
 
+// D5: las pruebas corren en Asia/Tokyo, 14 h por delante de Colombia, para
+// que un filtro por fecha que use la hora local del servidor dé otro día.
+// La zona se asigna en vi.hoisted, que corre antes de los import: AppModule
+// arrastra hora-colombia.ts, cuyo formateador Intl se crea al importar el
+// módulo y fija su zona en ese momento. Asignada en beforeAll llegaría tarde,
+// y un formateador sin `timeZone` tomaría la zona de la máquina. La e2e corre
+// en el hilo principal, así que no necesita la guarda de los unitarios.
+const zonaOriginal = vi.hoisted(() => {
+  const original = process.env.TZ;
+  process.env.TZ = 'Asia/Tokyo';
+  return original;
+});
+
 const CAMPOS_DEL_EVENTO = [
   'categoria',
   'ciudad',
@@ -25,16 +38,6 @@ const MENSAJE_DEL_PIPE = 'Validation failed (numeric string is expected)';
 
 describe('Eventos (e2e)', () => {
   let app: INestApplication<App>;
-
-  // D5: las pruebas corren en Asia/Tokyo, 14 h por delante de Colombia, para
-  // que un filtro por fecha que use la hora local del servidor dé otro día.
-  // La e2e corre en el hilo principal, así que no necesita la guarda de los
-  // unitarios.
-  const zonaOriginal = process.env.TZ;
-
-  beforeAll(() => {
-    process.env.TZ = 'Asia/Tokyo';
-  });
 
   afterAll(() => {
     if (zonaOriginal === undefined) {

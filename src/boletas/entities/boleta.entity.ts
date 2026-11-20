@@ -12,6 +12,5 @@ export type Boleta = {
   asientos: string[];
   nombre: string;
 } & (
-  | { estado: 'valida'; fechaUso: null }
-  | { estado: 'usada'; fechaUso: string }
+  { estado: 'valida'; fechaUso: null } | { estado: 'usada'; fechaUso: string }
 );

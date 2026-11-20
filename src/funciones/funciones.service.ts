@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Funcion } from './entities/funcion.entity.js';
 import { diaEnColombia } from './hora-colombia.js';
 
@@ -67,6 +67,15 @@ export class FuncionesService {
       precio: 8000,
     },
   ];
+
+  // Una copia de la función, o 404 si no existe.
+  findOne(id: number): Funcion {
+    const funcion = this.funciones.find((f) => f.id === id);
+    if (!funcion) {
+      throw new NotFoundException(`La función ${id} no existe`);
+    }
+    return { ...funcion };
+  }
 
   // Las funciones del evento, de la más próxima a la más lejana. Es una lista
   // nueva de copias, vacía si el evento no tiene funciones.
